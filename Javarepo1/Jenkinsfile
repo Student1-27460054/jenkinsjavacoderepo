@@ -1,50 +1,62 @@
 pipeline {
     agent any
+
     environment {
-        GITHUB_REPO = 'https://github.com/Student1-27460054/jenkinsjavacoderepo.git'  // Replace with your repo URL
-        GITHUB_CREDENTIALS = 'ccce5f9a-35bd-405f-bd41-2f7fd80d06ef'  // Jenkins credential ID for GitHub token
+        // Define environment variables for GitHub repository and credentials
+        GITHUB_REPO = "https://github.com/Student1-27460054/jenkinsjavacoderepo.git"
+        BRANCH = "main"  // Change this to your target branch if needed
+        GITHUB_CREDENTIALS = "ccce5f9a-35bd-405f-bd41-2f7fd80d06ef"  // The ID of the Jenkins GitHub credentials you created
+        ARTIFACT_PATH = "C:/Users/jenkins/AppData/Local/Jenkins/.jenkins/workspace/Java SDK Build/Javarepo1/target/*.jar"  // Path to your generated JAR files
     }
+
     stages {
         stage('Checkout') {
             steps {
-                // Clone the GitHub repository
-                git credentialsId: "${GITHUB_CREDENTIALS}", url: "${GITHUB_REPO}"
+                // Checkout the code from GitHub
+                git url: GITHUB_REPO, branch: BRANCH, credentialsId: GITHUB_CREDENTIALS
             }
         }
+
         stage('Build') {
             steps {
-                // Build the project using Maven (or any other build tool)
+                // Build the project using Maven
                 sh 'mvn clean package'
             }
         }
-        stage('Push Artifacts to GitHub') {
+
+        stage('Commit and Push Artifacts') {
             steps {
                 script {
-                    // Assuming the artifacts are in the target folder and are .jar files
-                    def artifactFiles = 'target/*.jar'  // Adjust path if needed
+                    // Set up Git user for committing
+                    sh 'git config --global user.email "your-email@example.com"'
+                    sh 'git config --global user.name "Jenkins CI"'
+                    
+                    // Ensure the directory for storing artifacts exists
+                    sh 'mkdir -p artifacts'
 
-                    // Copy the artifacts to a location that will be committed to GitHub
-                    sh 'mkdir -p pushed_artifacts'
-                    sh "cp ${artifactFiles} pushed_artifacts/"
+                    // Move the JAR files to a dedicated artifacts directory
+                    sh 'cp C:/*.jar artifacts/'
 
-                    // Git configuration
-                    sh 'git config user.name "Jenkins CI"'
-                    sh 'git config user.email "jenkins@yourdomain.com"'
+                    // Add the artifacts directory to Git staging
+                    sh 'git add artifacts/*'
 
-                    // Add and commit the changes
-                    sh 'git add pushed_artifacts/*'
-                    sh 'git commit -m "Add build artifacts" || echo "No changes to commit"'
+                    // Commit the changes (if any)
+                    sh 'git commit -m "Add built artifacts" || echo "No changes to commit"'
 
                     // Push the changes to GitHub
-                    sh 'git push origin main'  // Adjust branch if necessary
+                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS, variable: 'GITHUB_TOKEN')]) {
+                        sh """
+                        git push https://${GITHUB_TOKEN}@github.com/Student1-27460054/jenkinsjavacoderepo.git ${BRANCH}
+                        """
+                    }
                 }
             }
         }
     }
+
     post {
         always {
-            // Optionally, clean up
-            cleanWs()
+            // Clean up or perform other post-build actions if necessary
         }
     }
 }
