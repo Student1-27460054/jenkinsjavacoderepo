@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Define environment variables for GitHub repository and credentials
         GITHUB_REPO = "https://github.com/Student1-27460054/jenkinsjavacoderepo.git"
         BRANCH = "main"  // Change this to your target branch if needed
         GITHUB_CREDENTIALS = "ccce5f9a-35bd-405f-bd41-2f7fd80d06ef"  // The ID of the Jenkins GitHub credentials you created
@@ -12,15 +11,13 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the code from GitHub
                 git url: GITHUB_REPO, branch: BRANCH, credentialsId: GITHUB_CREDENTIALS
             }
         }
 
         stage('Build') {
             steps {
-                // Build the project using Maven
-                sh 'mvn clean package'
+                bat 'mvn clean package'
             }
         }
 
@@ -28,24 +25,24 @@ pipeline {
             steps {
                 script {
                     // Set up Git user for committing
-                    sh 'git config --global user.email "your-email@example.com"'
-                    sh 'git config --global user.name "Jenkins CI"'
-                    
+                    bat 'git config --global user.email "your-email@example.com"'
+                    bat 'git config --global user.name "Jenkins CI"'
+
                     // Ensure the directory for storing artifacts exists
-                    sh 'mkdir -p artifacts'
+                    bat 'mkdir artifacts'
 
                     // Move the JAR files to a dedicated artifacts directory
-                    sh 'cp C:/*.jar artifacts/'
+                    bat 'copy C:/Users/jenkins/AppData/Local/Jenkins/.jenkins/workspace/Java_Multibranch_Project_main/target/*.jar artifacts/'
 
                     // Add the artifacts directory to Git staging
-                    sh 'git add artifacts/*'
+                    bat 'git add artifacts/*'
 
                     // Commit the changes (if any)
-                    sh 'git commit -m "Add built artifacts" || echo "No changes to commit"'
+                    bat 'git commit -m "Add built artifacts" || echo "No changes to commit"'
 
                     // Push the changes to GitHub
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS, variable: 'GITHUB_TOKEN')]) {
-                        sh """
+                        bat """
                         git push https://${GITHUB_TOKEN}@github.com/Student1-27460054/jenkinsjavacoderepo.git ${BRANCH}
                         """
                     }
@@ -57,7 +54,6 @@ pipeline {
     post {
         always {
             echo 'Cleaning up after the build...'
-            // Clean up or perform other post-build actions if necessary
         }
     }
 }
